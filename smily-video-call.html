@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Call Smily!</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3D2C5B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Call Smily">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#BFEAF5;
+    --sky-bot:#8FDCF5;
+    --sun:#FFD166;
+    --sun-dark:#F2B33D;
+    --coral:#FF6F91;
+    --coral-dark:#E85578;
+    --leaf:#7ED957;
+    --leaf-dark:#5FC236;
+    --plum:#3D2C5B;
+    --white:#FFFFFF;
+    --shadow: rgba(61,44,91,0.28);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Nunito',sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--sky-top), var(--sky-bot) 70%);
+    color:var(--plum);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    overflow:hidden;
+  }
+  .app-shell{
+    position:relative;
+    width:100%;
+    max-width:480px;
+    height:100vh;
+    max-height:900px;
+    background:linear-gradient(180deg, var(--sky-top), var(--sky-bot));
+    box-shadow:0 20px 60px var(--shadow);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  @media (min-width:520px){
+    .app-shell{ height:850px; margin-top:24px; border-radius:36px; border:10px solid var(--white); }
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 14px 0 14px;
+    z-index:50;
+  }
+  .corner-btn{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    border:none;
+    border-radius:999px;
+    padding:10px 16px;
+    cursor:pointer;
+    color:var(--white);
+    box-shadow:0 4px 0 rgba(0,0,0,0.15);
+    letter-spacing:0.3px;
+    display:flex; align-items:center; gap:6px;
+    transition:transform .1s ease;
+  }
+  .corner-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,0.15); }
+  .menu-btn{ background:var(--plum); }
+  .close-btn{ background:var(--coral); }
+
+  /* ---------- Generic screen ---------- */
+  .screen{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:70px 20px 24px;
+    text-align:center;
+    gap:16px;
+  }
+  .hidden{ display:none !important; }
+
+  /* ---------- Smily face ---------- */
+  .avatar-wrap{ position:relative; }
+  .avatar-wrap.idle{ animation:bounce 2.6s ease-in-out infinite; }
+  .avatar-wrap.ringing{ animation:ring-shake 0.5s ease-in-out infinite; }
+  .avatar-wrap.wave{ animation:bounce 1.8s ease-in-out infinite; }
+  @keyframes bounce{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+  @keyframes ring-shake{ 0%,100%{transform:rotate(0deg);} 25%{transform:rotate(-9deg);} 75%{transform:rotate(9deg);} }
+
+  .smily-face{
+    position:relative;
+    width:150px; height:150px;
+    background:radial-gradient(circle at 35% 30%, #FFE29A, var(--sun) 60%, var(--sun-dark) 100%);
+    border-radius:50%;
+    box-shadow:0 10px 0 var(--sun-dark), inset 0 -8px 20px rgba(0,0,0,0.08);
+    margin:0 auto;
+  }
+  .smily-face.big{ width:140px; height:140px; }
+  .avatar-photo{
+    width:150px; height:150px;
+    border-radius:50%;
+    object-fit:cover;
+    margin:0 auto;
+    display:block;
+    box-shadow:0 10px 0 var(--sun-dark);
+  }
+  .avatar-photo.big{ width:140px; height:140px; box-shadow:none; }
+  .cheek{
+    position:absolute; width:26px; height:16px; border-radius:50%;
+    background:var(--coral); opacity:0.55; top:58%;
+  }
+  .cheek.left{ left:14%; } .cheek.right{ right:14%; }
+  .eye{
+    position:absolute; width:16px; height:20px; border-radius:50%;
+    background:var(--plum); top:34%; animation:blink 4.2s infinite;
+  }
+  .eye.left{ left:32%; } .eye.right{ right:32%; }
+  @keyframes blink{ 0%,94%,100%{transform:scaleY(1);} 97%{transform:scaleY(0.12);} }
+  .mouth{
+    position:absolute; left:50%; bottom:26%; transform:translateX(-50%);
+    width:46px; height:22px; background:var(--plum);
+    border-radius:0 0 30px 30px;
+    transform-origin:top center;
+  }
+  .smily-face.talking .mouth{ animation:talk 0.22s infinite alternate; }
+  @keyframes talk{ from{ transform:translateX(-50%) scaleY(0.35);} to{ transform:translateX(-50%) scaleY(1);} }
+
+  h1{ font-family:'Baloo 2',sans-serif; font-size:32px; margin:0; color:var(--plum); }
+
+  /* ---------- Call / talk buttons ---------- */
+  .call-btn, .talk-btn{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:18px;
+    color:var(--white);
+    background:var(--leaf);
+    border:none;
+    border-radius:999px;
+    padding:16px 28px;
+    display:inline-flex; align-items:center; gap:10px;
+    cursor:pointer;
+    box-shadow:0 6px 0 var(--leaf-dark);
+    position:relative;
+  }
+  .call-btn{ font-size:20px; background:var(--coral); box-shadow:0 6px 0 var(--coral-dark); }
+  .call-btn::after{
+    content:''; position:absolute; inset:0; border-radius:999px;
+    box-shadow:0 0 0 0 rgba(255,111,145,0.6);
+    animation:pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(255,111,145,0.55); }
+    70%{ box-shadow:0 0 0 22px rgba(255,111,145,0); }
+    100%{ box-shadow:0 0 0 0 rgba(255,111,145,0); }
+  }
+  .call-btn:active, .talk-btn:active{ transform:translateY(4px); box-shadow:0 2px 0 var(--coral-dark); }
+  .talk-btn:disabled{ opacity:0.55; cursor:default; transform:none; }
+
+  .ring-text{ font-family:'Baloo 2',sans-serif; font-size:22px; }
+  .dots span{ animation:dotfade 1.2s infinite; opacity:0; }
+  .dots span:nth-child(1){animation-delay:0s;}
+  .dots span:nth-child(2){animation-delay:.2s;}
+  .dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes dotfade{ 0%,100%{opacity:0;} 50%{opacity:1;} }
+
+  /* ---------- Call screen ---------- */
+  #callScreen{ padding-top:60px; justify-content:flex-start; gap:10px; overflow-y:auto; }
+  .video-frame{
+    position:relative;
+    width:100%;
+    max-width:230px;
+    aspect-ratio:4/3;
+    background:linear-gradient(180deg,#2C2145,var(--plum));
+    border-radius:24px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 0 rgba(0,0,0,0.15);
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .call-video{ width:100%; height:100%; object-fit:cover; }
+  .live-badge{
+    position:absolute; top:10px; left:10px;
+    background:rgba(0,0,0,0.35); color:var(--white);
+    font-family:'Baloo 2',sans-serif; font-size:11px;
+    padding:3px 9px; border-radius:999px;
+  }
+  .live-badge::before{ content:'●'; color:#FF5C5C; margin-right:4px; animation:dotfade 1.4s infinite; }
+  .name-tag{
+    position:absolute; bottom:10px; left:10px;
+    background:rgba(0,0,0,0.35); color:var(--white);
+    font-family:'Baloo 2',sans-serif; font-size:13px;
+    padding:4px 11px; border-radius:999px;
+  }
+
+  .chat-log{
+    width:100%; max-width:340px;
+    max-height:130px;
+    overflow-y:auto;
+    display:flex; flex-direction:column; gap:7px;
+    padding:6px 4px;
+    flex-shrink:0;
+  }
+  .chat-placeholder{ font-family:'Baloo 2',sans-serif; font-size:14px; opacity:0.6; }
+  .chat-bubble{
+    padding:9px 14px; border-radius:16px;
+    font-family:'Baloo 2',sans-serif; font-size:14px;
+    max-width:82%; text-align:left; line-height:1.3;
+    box-shadow:0 3px 0 rgba(0,0,0,0.06);
+  }
+  .chat-bubble.smily{ align-self:flex-start; background:var(--white); border-bottom-left-radius:4px; }
+  .chat-bubble.you{ align-self:flex-end; background:var(--leaf); color:var(--white); border-bottom-right-radius:4px; }
+
+  .hint-text{ font-family:'Baloo 2',sans-serif; font-size:13px; font-weight:700; opacity:0.75; margin:0; }
+
+  .chip-grid{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:8px;
+    width:100%; max-width:320px;
+  }
+  .chip-btn{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:14px; border:none;
+    background:var(--sun); color:var(--plum);
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;
+    cursor:pointer;
+    box-shadow:0 4px 0 var(--sun-dark);
+  }
+  .chip-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--sun-dark); }
+  .chip-btn:disabled{ opacity:0.55; cursor:default; }
+  .chip-btn.chip-done{ background:var(--leaf); color:var(--white); box-shadow:0 4px 0 var(--leaf-dark); }
+  .chip-btn.chip-done::after{ content:'✓'; position:absolute; top:2px; right:5px; font-size:11px; }
+
+  .bye-text{ font-family:'Baloo 2',sans-serif; font-size:24px; }
+
+  /* ---------- Self camera view & mic ---------- */
+  .self-view{
+    position:absolute; bottom:8px; right:8px;
+    width:58px; height:58px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid var(--white);
+    box-shadow:0 3px 8px rgba(0,0,0,0.3);
+    background:#000;
+  }
+  .camera-toggle-btn{
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:12px;
+    color:var(--plum); background:var(--white);
+    border:2px solid #E4DEF0; border-radius:999px;
+    padding:6px 14px; cursor:pointer;
+    box-shadow:0 3px 0 rgba(0,0,0,0.06);
+    flex-shrink:0;
+  }
+  .camera-toggle-btn:active{ transform:translateY(2px); box-shadow:none; }
+  .camera-toggle-btn.on{ background:var(--leaf); color:var(--white); border-color:var(--leaf-dark); }
+
+  .mic-btn{
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;
+    color:var(--plum); background:var(--white);
+    border:2px solid var(--coral); border-radius:999px;
+    padding:11px 22px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+    box-shadow:0 4px 0 #F0D5DB;
+  }
+  .mic-btn:active{ transform:translateY(3px); box-shadow:none; }
+  .mic-btn:disabled{ opacity:0.5; cursor:default; }
+  .mic-btn.listening{
+    background:var(--coral); color:var(--white);
+    animation:mic-pulse 1s ease-in-out infinite;
+  }
+  @keyframes mic-pulse{
+    0%,100%{ box-shadow:0 4px 0 var(--coral-dark), 0 0 0 0 rgba(255,111,145,0.5); }
+    50%{ box-shadow:0 4px 0 var(--coral-dark), 0 0 0 10px rgba(255,111,145,0); }
+  }
+
+  /* ---------- Menu overlay ---------- */
+  .overlay{
+    position:absolute; inset:0; background:rgba(61,44,91,0.55);
+    display:flex; align-items:flex-end; justify-content:center;
+    z-index:100;
+  }
+  .menu-panel{
+    background:var(--white);
+    width:100%; max-height:88%;
+    border-radius:28px 28px 0 0;
+    padding:22px 20px 20px;
+    overflow-y:auto;
+  }
+  .menu-panel h2{ font-family:'Baloo 2',sans-serif; margin:0 0 14px; font-size:24px; }
+  .field-block{ margin-bottom:18px; }
+  .field-block label{ display:block; font-weight:800; font-size:13px; color:var(--plum); margin-bottom:6px; }
+  .field-block input[type=text]{
+    width:100%; padding:10px 12px; border-radius:12px; border:2px solid #E4DEF0;
+    font-family:'Nunito',sans-serif; font-size:15px; color:var(--plum);
+  }
+  .field-block input[type=text]:focus{ outline:none; border-color:var(--coral); }
+  .pair-row{
+    border:2px solid #EFEAF7; border-radius:18px; padding:14px; margin-bottom:14px;
+  }
+  .pair-num{
+    display:inline-block; background:var(--sun); color:var(--plum);
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px;
+    padding:2px 10px; border-radius:999px; margin-bottom:8px;
+  }
+  .pair-field{ margin-top:8px; }
+  .upload-row{ display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .upload-label{
+    font-size:13px; font-weight:800; color:var(--white); background:var(--plum);
+    padding:7px 12px; border-radius:999px; cursor:pointer; display:inline-flex; gap:6px; align-items:center;
+  }
+  .video-status{ font-size:12px; color:#7A7089; }
+  .remove-video{
+    border:none; background:#FFE2E2; color:#C23A3A; font-weight:800; font-size:11px;
+    border-radius:999px; padding:4px 9px; cursor:pointer;
+  }
+  .menu-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; position:sticky; bottom:0; background:var(--white); padding-top:10px; }
+  .menu-actions button{
+    flex:1 1 auto; min-width:110px;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px;
+    border:none; border-radius:14px; padding:13px; cursor:pointer;
+  }
+  #closeMenuBtn{ background:#F1EEF9; color:var(--plum); }
+  #resetBtn{ background:#FFE2E2; color:#C23A3A; }
+  #saveCopyBtn{ background:var(--leaf); color:var(--white); flex-basis:100%; }
+  #saveCopyBtn:disabled{ opacity:0.6; cursor:default; }
+  .save-hint{ font-size:12px; color:#7A7089; margin:6px 0 0; text-align:center; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell" id="appShell">
+
+  <div class="topbar">
+    <button class="corner-btn menu-btn" id="menuBtn">☰ MENU</button>
+    <button class="corner-btn close-btn" id="closeBtn">✕ CLOSE</button>
+  </div>
+
+  <!-- HOME -->
+  <section class="screen" id="homeScreen">
+    <div class="avatar-wrap idle">
+      <div class="smily-face" id="homeFace">
+        <div class="eye left"></div><div class="eye right"></div>
+        <div class="cheek left"></div><div class="cheek right"></div>
+        <div class="mouth"></div>
+      </div>
+      <img class="avatar-photo hidden" id="homeAvatarImg" alt="">
+    </div>
+    <h1 id="homeName">Smily</h1>
+    <button class="call-btn" id="callBtn">📞 Call</button>
+  </section>
+
+  <!-- RINGING -->
+  <section class="screen hidden" id="ringingScreen">
+    <div class="avatar-wrap ringing">
+      <div class="smily-face" id="ringFace">
+        <div class="eye left"></div><div class="eye right"></div>
+        <div class="cheek left"></div><div class="cheek right"></div>
+        <div class="mouth"></div>
+      </div>
+      <img class="avatar-photo hidden" id="ringAvatarImg" alt="">
+    </div>
+    <p class="ring-text">Calling <span id="ringName">Smily</span><span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+  </section>
+
+  <!-- CALL -->
+  <section class="screen hidden" id="callScreen">
+    <div class="video-frame">
+      <div class="live-badge">LIVE</div>
+      <video class="call-video hidden" id="callVideo" playsinline></video>
+      <div class="smily-face big" id="callFace">
+        <div class="eye left"></div><div class="eye right"></div>
+        <div class="cheek left"></div><div class="cheek right"></div>
+        <div class="mouth"></div>
+      </div>
+      <img class="avatar-photo big hidden" id="callAvatarImg" alt="">
+      <div class="name-tag" id="callNameTag">Smily</div>
+      <video class="self-view hidden" id="selfView" autoplay muted playsinline></video>
+    </div>
+
+    <button class="camera-toggle-btn" id="cameraToggleBtn">📷 Show my video</button>
+
+    <div class="chat-log" id="chatLog">
+      <p class="chat-placeholder" id="chatPlaceholder">Tap the button, or tap a number below, to start chatting!</p>
+    </div>
+
+    <button class="talk-btn" id="talkBtn">😊 Let Smily ask you first</button>
+    <button class="mic-btn" id="micBtn">🎤 Answer with your voice</button>
+
+    <p class="hint-text">🎤 Or tap a number to ask Smily something!</p>
+    <div class="chip-grid" id="chipGrid"></div>
+  </section>
+
+  <!-- GOODBYE -->
+  <section class="screen hidden" id="goodbyeScreen">
+    <div class="avatar-wrap wave">
+      <div class="smily-face" id="byeFace">
+        <div class="eye left"></div><div class="eye right"></div>
+        <div class="cheek left"></div><div class="cheek right"></div>
+        <div class="mouth"></div>
+      </div>
+      <img class="avatar-photo hidden" id="byeAvatarImg" alt="">
+    </div>
+    <p class="bye-text">Bye bye! See you soon! 👋</p>
+    <button class="call-btn" id="homeAgainBtn">🏠 Home</button>
+  </section>
+
+  <!-- MENU / EDIT -->
+  <div class="overlay hidden" id="menuOverlay">
+    <div class="menu-panel">
+      <h2>Edit Smily's Call</h2>
+      <div class="field-block">
+        <label>Caller name</label>
+        <input type="text" id="nameInput">
+      </div>
+      <div class="field-block">
+        <label>Caller photo (optional)</label>
+        <div class="upload-row">
+          <label class="upload-label">🖼️ Upload a photo
+            <input type="file" accept="image/*" id="avatarInput" hidden>
+          </label>
+          <span class="video-status" id="avatarStatus">No photo · shows the default face</span>
+          <button class="remove-video hidden" id="removeAvatarBtn">Remove</button>
+        </div>
+      </div>
+      <div id="pairsList"></div>
+      <div class="menu-actions">
+        <button id="resetBtn">Reset defaults</button>
+        <button id="closeMenuBtn">Close</button>
+        <button id="saveCopyBtn">💾 Save a copy</button>
+      </div>
+      <p class="save-hint">"Save a copy" downloads this game as a new file on your device, with all your changes built in.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Captured before any runtime changes happen, so it always reflects the
+  // original authored page. Used by "Save a copy" to build a downloadable file.
+  const PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+(function(){
+  // @@DEFAULT_PAIRS_START@@
+  const defaultPairs = [
+    {q:"Hello! How are you?", a:"Hello! I am good, thank you!", qVideo:null, aVideo:null},
+    {q:"What is your name?", a:"My name is Alex!", qVideo:null, aVideo:null},
+    {q:"Do you want to play?", a:"Yes! Let's play together!", qVideo:null, aVideo:null},
+    {q:"What is your favorite color?", a:"My favorite color is blue!", qVideo:null, aVideo:null},
+    {q:"Do you like animals?", a:"Yes, I love puppies!", qVideo:null, aVideo:null},
+    {q:"What did you eat today?", a:"I ate yummy pasta!", qVideo:null, aVideo:null},
+    {q:"Can you count to three?", a:"One, two, three!", qVideo:null, aVideo:null},
+    {q:"What sound does a cow make?", a:"Moo, moo!", qVideo:null, aVideo:null},
+    {q:"Are you happy today?", a:"Yes, I am very happy!", qVideo:null, aVideo:null},
+    {q:"Goodbye! See you soon!", a:"Bye bye! See you soon!", qVideo:null, aVideo:null}
+  ];
+  // @@DEFAULT_PAIRS_END@@
+  // @@SMILY_NAME_START@@
+  let smilyName = "Chase";
+  // @@SMILY_NAME_END@@
+  // @@AVATAR_START@@
+  let avatarImage = null;
+  // @@AVATAR_END@@
+
+  let pairs = JSON.parse(JSON.stringify(defaultPairs));
+  let currentIndex = 0;
+  let turn = "question"; // "question" | "answer" (guided mode only)
+  let busy = false;
+  let ringingTimer = null;
+  let selfStream = null;
+  let recognizing = false;
+
+  const $ = id => document.getElementById(id);
+  const screens = {
+    home: $("homeScreen"), ringing: $("ringingScreen"),
+    call: $("callScreen"), goodbye: $("goodbyeScreen")
+  };
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.add("hidden"));
+    screens[name].classList.remove("hidden");
+  }
+
+  function stopSpeaking(){
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  function speak(text, faceEl, pitch, onDone){
+    faceEl.classList.add("talking");
+    if(!("speechSynthesis" in window)){
+      setTimeout(()=>{ faceEl.classList.remove("talking"); onDone && onDone(); }, 1100);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.95;
+    utter.pitch = pitch;
+    utter.onend = () => { faceEl.classList.remove("talking"); onDone && onDone(); };
+    utter.onerror = () => { faceEl.classList.remove("talking"); onDone && onDone(); };
+    window.speechSynthesis.speak(utter);
+  }
+
+  // Always shows Smily's video window, whichever line (question/answer) is playing.
+  function speakOrPlay(text, videoUrl, pitch, onDone){
+    const video = $("callVideo");
+    const face = $("callFace");
+    if(videoUrl){
+      face.classList.add("hidden");
+      video.classList.remove("hidden");
+      video.src = videoUrl;
+      video.muted = false;
+      video.onended = onDone;
+      video.play().catch(onDone);
+    } else {
+      video.classList.add("hidden");
+      face.classList.remove("hidden");
+      speak(text, face, pitch, onDone);
+    }
+  }
+
+  function addBubble(speaker, text){
+    const log = $("chatLog");
+    const placeholder = $("chatPlaceholder");
+    if(placeholder) placeholder.remove();
+    const div = document.createElement("div");
+    div.className = "chat-bubble " + speaker;
+    div.textContent = (speaker === "you" ? "🧒 You: " : "😊 " + smilyName + ": ") + text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function markChip(idx, done){
+    const chip = document.querySelector('.chip-btn[data-idx="' + idx + '"]');
+    if(chip) chip.classList.toggle("chip-done", !!done);
+  }
+
+  // A real reply spoken by the child (via mic) completes the current guided
+  // "answer" turn the same way tapping the talk button would.
+  function handleUserReply(text){
+    addBubble("you", text);
+    if(turn === "answer"){
+      markChip(currentIndex, true);
+      currentIndex = (currentIndex + 1) % pairs.length;
+      turn = "question";
+      $("talkBtn").textContent = currentIndex === 0 ? "👋 Tap to chat again!" : "😊 Let Smily ask the next one";
+    }
+  }
+
+  // ---------- Self camera view (picture-in-picture, like a real video call) ----------
+  async function toggleCamera(){
+    const btn = $("cameraToggleBtn");
+    const selfView = $("selfView");
+    if(selfStream){
+      stopCamera();
+      return;
+    }
+
+    if(!window.isSecureContext){
+      addBubble("smily", "Camera needs a secure page (https://) or 'localhost' to work — opening this file directly (file://) blocks it in most browsers, even if you've allowed camera access before. Try hosting the file online, or running it from a local server, then open it that way.");
+      return;
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      addBubble("smily", "This browser doesn't support camera access here. Please try the latest Chrome, Edge, or Safari.");
+      return;
+    }
+
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = "📷 Asking...";
+    try{
+      selfStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      selfView.srcObject = selfStream;
+      selfView.classList.remove("hidden");
+      btn.textContent = "📷 Hide my video";
+      btn.classList.add("on");
+    } catch(err){
+      console.error(err);
+      let msg = "I can't see your camera. Please allow camera access and try again!";
+      if(err && err.name === "NotAllowedError"){
+        msg = "Camera access is blocked for this page. Tap the camera or lock icon in your browser's address bar, allow the camera here, then try again.";
+      } else if(err && err.name === "NotFoundError"){
+        msg = "I couldn't find a camera on this device.";
+      } else if(err && err.name === "NotReadableError"){
+        msg = "Your camera might already be in use by another app. Close it and try again.";
+      } else if(err && err.name === "SecurityError"){
+        msg = "This page isn't allowed to use the camera here. It needs to be opened over https:// or localhost.";
+      }
+      addBubble("smily", msg);
+      btn.textContent = originalLabel;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function stopCamera(){
+    if(selfStream){
+      selfStream.getTracks().forEach(t => t.stop());
+      selfStream = null;
+    }
+    const selfView = $("selfView");
+    selfView.srcObject = null;
+    selfView.classList.add("hidden");
+    const btn = $("cameraToggleBtn");
+    btn.textContent = "📷 Show my video";
+    btn.classList.remove("on");
+  }
+
+  $("cameraToggleBtn").addEventListener("click", toggleCamera);
+
+  // ---------- Mic reply (speech recognition) ----------
+  $("micBtn").addEventListener("click", () => {
+    if(busy || recognizing) return;
+    if(!window.isSecureContext){
+      addBubble("smily", "Voice replies need a secure page (https://) or 'localhost' — opening this file directly (file://) blocks the microphone in most browsers. Try hosting the file online, or running it from a local server.");
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){
+      addBubble("smily", "Voice replies work best in Chrome or Safari on this device!");
+      return;
+    }
+    const micBtn = $("micBtn");
+    recognizing = true;
+    micBtn.classList.add("listening");
+    micBtn.textContent = "🎤 Listening...";
+
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+
+    rec.onresult = (e) => {
+      const said = e.results[0][0].transcript;
+      handleUserReply(said);
+    };
+    rec.onerror = (e) => {
+      let msg = "I couldn't quite hear that — want to try again?";
+      if(e && e.error === "not-allowed"){
+        msg = "Microphone access is blocked for this page. Allow the microphone in your browser's address bar, then try again.";
+      } else if(e && e.error === "no-speech"){
+        msg = "I didn't hear anything — try speaking a little louder!";
+      } else if(e && e.error === "audio-capture"){
+        msg = "I couldn't find a microphone on this device.";
+      }
+      addBubble("smily", msg);
+    };
+    rec.onend = () => {
+      recognizing = false;
+      micBtn.classList.remove("listening");
+      micBtn.textContent = "🎤 Answer with your voice";
+    };
+
+    try{ rec.start(); }
+    catch(err){ recognizing = false; micBtn.classList.remove("listening"); micBtn.textContent = "🎤 Answer with your voice"; }
+  });
+
+  function setControlsBusy(state){
+    busy = state;
+    $("talkBtn").disabled = state;
+    $("micBtn").disabled = state;
+    document.querySelectorAll(".chip-btn").forEach(b => b.disabled = state);
+  }
+
+  // ---------- Guided mode: Smily asks first, child taps to give the reply ----------
+  function guidedTurn(){
+    if(busy) return;
+    const pair = pairs[currentIndex];
+    const btn = $("talkBtn");
+
+    if(turn === "question"){
+      setControlsBusy(true);
+      addBubble("smily", pair.q);
+      speakOrPlay(pair.q, pair.qVideo, 1.15, () => {
+        setControlsBusy(false);
+        turn = "answer";
+        btn.textContent = "🧒 Tap to give your reply!";
+      });
+    } else {
+      setControlsBusy(true);
+      addBubble("you", pair.a);
+      speakOrPlay(pair.a, pair.aVideo, 1.15, () => {
+        markChip(currentIndex, true);
+        setControlsBusy(false);
+        turn = "question";
+        currentIndex = (currentIndex + 1) % pairs.length;
+        btn.textContent = currentIndex === 0 ? "👋 Tap to chat again!" : "😊 Let Smily ask the next one";
+      });
+    }
+  }
+
+  // ---------- Free mode: child picks any question to ask Smily ----------
+  function askChip(idx){
+    if(busy) return;
+    setControlsBusy(true);
+    const pair = pairs[idx];
+    addBubble("you", pair.q);
+    speakOrPlay(pair.q, pair.qVideo, 1.5, () => {
+      addBubble("smily", pair.a);
+      speakOrPlay(pair.a, pair.aVideo, 1.15, () => {
+        markChip(idx, true);
+        setControlsBusy(false);
+      });
+    });
+  }
+
+  function buildChipGrid(){
+    const grid = $("chipGrid");
+    grid.innerHTML = "";
+    pairs.forEach((_, i) => {
+      const b = document.createElement("button");
+      b.className = "chip-btn";
+      b.dataset.idx = i;
+      b.textContent = i + 1;
+      b.addEventListener("click", () => askChip(i));
+      grid.appendChild(b);
+    });
+  }
+
+  function resetCallState(){
+    currentIndex = 0;
+    turn = "question";
+    busy = false;
+    $("chatLog").innerHTML = '<p class="chat-placeholder">Tap the button, or tap a number below, to start chatting!</p>';
+    $("talkBtn").textContent = "😊 Let Smily ask you first";
+    $("talkBtn").disabled = false;
+    $("micBtn").classList.remove("listening");
+    $("micBtn").textContent = "🎤 Answer with your voice";
+    stopCamera();
+    buildChipGrid();
+  }
+
+  // ---------- Home -> Ringing -> Call ----------
+  $("callBtn").addEventListener("click", () => {
+    $("ringName").textContent = smilyName;
+    showScreen("ringing");
+    ringingTimer = setTimeout(() => {
+      $("callNameTag").textContent = smilyName;
+      resetCallState();
+      showScreen("call");
+    }, 1700);
+  });
+
+  $("talkBtn").addEventListener("click", guidedTurn);
+
+  $("homeAgainBtn").addEventListener("click", () => showScreen("home"));
+
+  // ---------- Close ----------
+  $("closeBtn").addEventListener("click", () => {
+    clearTimeout(ringingTimer);
+    stopSpeaking();
+    stopCamera();
+    const video = $("callVideo");
+    video.pause();
+    showScreen("goodbye");
+    setTimeout(() => { showScreen("home"); }, 2600);
+  });
+
+  // ---------- Menu / Edit ----------
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  function buildPairsList(){
+    const list = $("pairsList");
+    list.innerHTML = "";
+    pairs.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "pair-row";
+      row.innerHTML = `
+        <span class="pair-num">Pair ${i+1}</span>
+        <div class="pair-field">
+          <label>Question</label>
+          <input type="text" class="q-input" data-idx="${i}" value="${escapeHtml(p.q)}">
+          <div class="upload-row">
+            <label class="upload-label">🎥 Upload question video
+              <input type="file" accept="video/*" class="q-video-input" data-idx="${i}" hidden>
+            </label>
+            <span class="video-status">${p.qVideo ? "Video added" : "No video · uses Smily's voice"}</span>
+            ${p.qVideo ? `<button class="remove-video" data-type="q" data-idx="${i}">Remove</button>` : ""}
+          </div>
+        </div>
+        <div class="pair-field">
+          <label>Answer</label>
+          <input type="text" class="a-input" data-idx="${i}" value="${escapeHtml(p.a)}">
+          <div class="upload-row">
+            <label class="upload-label">🎥 Upload answer video
+              <input type="file" accept="video/*" class="a-video-input" data-idx="${i}" hidden>
+            </label>
+            <span class="video-status">${p.aVideo ? "Video added" : "No video · uses Smily's voice"}</span>
+            ${p.aVideo ? `<button class="remove-video" data-type="a" data-idx="${i}">Remove</button>` : ""}
+          </div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll(".q-input").forEach(inp => inp.addEventListener("input", e => {
+      pairs[e.target.dataset.idx].q = e.target.value;
+    }));
+    list.querySelectorAll(".a-input").forEach(inp => inp.addEventListener("input", e => {
+      pairs[e.target.dataset.idx].a = e.target.value;
+    }));
+    list.querySelectorAll(".q-video-input").forEach(inp => inp.addEventListener("change", e => {
+      const idx = e.target.dataset.idx;
+      const file = e.target.files[0];
+      if(file){ pairs[idx].qVideo = URL.createObjectURL(file); buildPairsList(); }
+    }));
+    list.querySelectorAll(".a-video-input").forEach(inp => inp.addEventListener("change", e => {
+      const idx = e.target.dataset.idx;
+      const file = e.target.files[0];
+      if(file){ pairs[idx].aVideo = URL.createObjectURL(file); buildPairsList(); }
+    }));
+    list.querySelectorAll(".remove-video").forEach(btn => btn.addEventListener("click", e => {
+      const idx = e.target.dataset.idx, type = e.target.dataset.type;
+      if(type === "q") pairs[idx].qVideo = null; else pairs[idx].aVideo = null;
+      buildPairsList();
+    }));
+  }
+
+  $("menuBtn").addEventListener("click", () => {
+    $("nameInput").value = smilyName;
+    buildPairsList();
+    $("menuOverlay").classList.remove("hidden");
+  });
+
+  $("nameInput").addEventListener("input", e => {
+    smilyName = e.target.value.trim() || "Smily";
+    $("homeName").textContent = smilyName;
+  });
+
+  $("closeMenuBtn").addEventListener("click", () => {
+    $("menuOverlay").classList.add("hidden");
+  });
+
+  $("resetBtn").addEventListener("click", () => {
+    pairs = JSON.parse(JSON.stringify(defaultPairs));
+    smilyName = "Smily";
+    $("nameInput").value = smilyName;
+    $("homeName").textContent = smilyName;
+    buildPairsList();
+  });
+
+  // ---------- Save a copy (downloads a new file with current edits baked in) ----------
+  function blobUrlToBase64(url){
+    return fetch(url).then(r => r.blob()).then(blob => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    }));
+  }
+
+  async function exportSavedCopy(){
+    const btn = $("saveCopyBtn");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "💾 Saving...";
+    try{
+      const pairsOut = [];
+      for(const p of pairs){
+        const qVideo = p.qVideo ? (p.qVideo.startsWith("data:") ? p.qVideo : await blobUrlToBase64(p.qVideo)) : null;
+        const aVideo = p.aVideo ? (p.aVideo.startsWith("data:") ? p.aVideo : await blobUrlToBase64(p.aVideo)) : null;
+        pairsOut.push({ q: p.q, a: p.a, qVideo, aVideo });
+      }
+
+      const scriptMatch = PRISTINE_HTML.match(/<script>([\s\S]*?)<\/script>/);
+      if(!scriptMatch) throw new Error("Could not find script to update.");
+      let scriptText = scriptMatch[1];
+
+      const pairsBlock = "// @@DEFAULT_PAIRS_START@@\n  const defaultPairs = "
+        + JSON.stringify(pairsOut, null, 2) + ";\n  // @@DEFAULT_PAIRS_END@@";
+      scriptText = scriptText.replace(
+        /\/\/ @@DEFAULT_PAIRS_START@@[\s\S]*?\/\/ @@DEFAULT_PAIRS_END@@/,
+        pairsBlock.replace(/\$/g, "$$$$")
+      );
+
+      const nameBlock = "// @@SMILY_NAME_START@@\n  let smilyName = "
+        + JSON.stringify(smilyName) + ";\n  // @@SMILY_NAME_END@@";
+      scriptText = scriptText.replace(
+        /\/\/ @@SMILY_NAME_START@@[\s\S]*?\/\/ @@SMILY_NAME_END@@/,
+        nameBlock.replace(/\$/g, "$$$$")
+      );
+
+      const closeTag = "<" + "/script>";
+      const finalHtml = PRISTINE_HTML.replace(/<script>[\s\S]*?<\/script>/, "<script>" + scriptText + closeTag);
+
+      const blob = new Blob([finalHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const fileName = "smily-video-call-" + smilyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + ".html";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || "smily-video-call.html";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch(err){
+      console.error(err);
+      alert("Sorry, saving didn't work this time. Please try again.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+
+  $("saveCopyBtn").addEventListener("click", exportSavedCopy);
+
+  buildChipGrid();
+  showScreen("home");
+
+  if("serviceWorker" in navigator && window.isSecureContext){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
